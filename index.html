@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt Forge</title>
+<style>
+:root{--bg:#eceff3;--card:#fff;--ink:#14213d;--mute:#5d6678;--line:#cfd5df;--acc:#d62839;--sel:#14213d;--selt:#fff;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1218;--card:#171b24;--ink:#e8eaf0;--mute:#9aa3b5;--line:#2b3140;--acc:#ff5a64;--sel:#e8eaf0;--selt:#0f1218;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Avenir Next","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 16px 48px}
+h1{font:600 clamp(30px,5vw,42px)/1.1 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;margin:0 0 6px}
+.sub{color:var(--mute);margin:0 0 20px;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media(min-width:860px){.grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}.out{position:sticky;top:16px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+label,.lab{display:block;font-weight:600;font-size:13px;margin:14px 0 5px}
+input,select,textarea{width:100%;font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+textarea{min-height:100px;resize:vertical}
+select option{color:#14213d}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 10px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;border:0;background:none;color:inherit;font:inherit;padding:8px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--sel);color:var(--selt)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:13px;padding:4px 10px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--sel);color:var(--selt);border-color:var(--sel)}
+.ck{display:inline-flex;gap:6px;align-items:center;font-weight:400;font-size:14px;margin:0 14px 6px 0}
+.ck input{width:auto}
+.hint{color:var(--mute);font-size:13px;margin:8px 0 0}
+body[data-mode=image] .v{display:none}
+body[data-tab=enhance] #rand{display:none}
+.view{--c:var(--ink);--g:linear-gradient(var(--c),var(--c));padding:30px 28px 26px;background-color:var(--card);background-image:var(--g),var(--g),var(--g),var(--g),var(--g),var(--g),var(--g),var(--g);background-repeat:no-repeat;background-position:0 0,0 0,100% 0,100% 0,0 100%,0 100%,100% 100%,100% 100%;background-size:24px 2px,2px 24px,24px 2px,2px 24px,24px 2px,2px 24px,24px 2px,2px 24px}
+.bar{display:flex;justify-content:space-between;align-items:center;min-height:22px;color:var(--mute);font-size:13px;margin-bottom:10px}
+.rec{display:none;align-items:center;gap:6px;color:var(--acc);font-weight:700}
+body[data-mode=video] .rec{display:inline-flex}
+.rec i{width:9px;height:9px;border-radius:50%;background:var(--acc)}
+@media(prefers-reduced-motion:no-preference){.rec i{animation:b 1.2s steps(2) infinite}}
+@keyframes b{50%{opacity:.25}}
+#out{margin:0;min-height:130px;white-space:pre-wrap;word-break:break-word;font:18px/1.6 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+#out:empty::before{content:attr(data-ph);color:var(--mute)}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.btn{font:inherit;padding:9px 16px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:inherit;cursor:pointer}
+.btn.pri{background:var(--sel);color:var(--selt);border-color:var(--sel);font-weight:600}
+</style>
+</head>
+<body data-mode="image" data-tab="build">
+<div class="wrap">
+  <h1>Prompt Forge</h1>
+  <p class="sub">Build image and video prompts from parts, or enhance a rough one. It runs entirely in your browser, so it works as a plain static page on GitHub Pages.</p>
+  <div class="grid">
+    <div>
+      <section class="card">
+        <span class="lab" style="margin-top:0">Make a</span>
+        <div class="seg" id="mode"><button type="button" data-mode="image" aria-pressed="true">Image</button><button type="button" data-mode="video" aria-pressed="false">Video</button></div>
+        <div class="row">
+          <div><label for="target">Prompt format</label>
+            <select id="target"><option value="prose">Natural language (Sora, Veo, Runway, Flux, DALL·E)</option><option value="mj">Midjourney</option><option value="sd">Stable Diffusion tags</option></select></div>
+          <div><label for="ar">Aspect ratio</label><select id="ar"></select></div>
+          <div class="v"><label for="dur">Length in seconds</label><select id="dur"></select></div>
+        </div>
+        <label for="neg">Avoid (negative prompt)</label>
+        <input id="neg" placeholder="blurry, watermark, extra fingers">
+      </section>
+
+      <section class="card">
+        <div class="seg" id="tabs"><button type="button" data-tab="build" aria-pressed="true">Build</button><button type="button" data-tab="enhance" aria-pressed="false">Enhance</button></div>
+
+        <div id="p-build">
+          <label for="subject">Subject</label>
+          <input id="subject" placeholder="a red fox with a silver collar">
+          <div class="v"><label for="action">Action</label>
+            <input id="action" placeholder="leaping over a fallen log"></div>
+          <label for="setting">Setting</label>
+          <input id="setting" placeholder="a frozen lake at dawn, pine forest in the distance">
+          <div id="chips"></div>
+        </div>
+
+        <div id="p-enh" hidden>
+          <label for="base">Your rough prompt</label>
+          <textarea id="base" placeholder="a fox crossing a frozen lake"></textarea>
+          <span class="lab">Add what is missing</span>
+          <div id="opts">
+            <label class="ck"><input type="checkbox" value="style" checked>Style</label>
+            <label class="ck"><input type="checkbox" value="shot" checked>Camera and framing</label>
+            <label class="ck"><input type="checkbox" value="lighting" checked>Lighting</label>
+            <label class="ck"><input type="checkbox" value="mood" checked>Mood</label>
+            <label class="ck"><input type="checkbox" value="palette" checked>Color palette</label>
+            <label class="ck v"><input type="checkbox" value="move" checked>Camera movement</label>
+            <label class="ck"><input type="checkbox" value="quality" checked>Quality boosters</label>
+          </div>
+          <p class="hint">Only adds what your prompt does not already cover. Chips picked on the Build tab are used first; otherwise picks are random, so press Enhance again for a new take.</p>
+          <div class="btns"><button type="button" class="btn pri" id="enh">Enhance prompt</button></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="out">
+      <div class="view">
+        <div class="bar"><span class="rec"><i></i>REC</span><span id="stats"></span></div>
+        <p id="out"></p>
+      </div>
+      <div class="btns">
+        <button type="button" class="btn pri" id="copy">Copy prompt</button>
+        <button type="button" class="btn" id="rand">Randomize</button>
+        <button type="button" class="btn" id="clear">Clear all</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+// [key, label, options, multi-select, video-only]
+const G=[
+["style","Style",["photorealistic","cinematic film still","anime","oil painting","watercolor","3D render","pixel art","cyberpunk","vintage 35mm film","claymation","film noir","isometric illustration"]],
+["shot","Shot and angle",["extreme close-up","close-up","medium shot","wide shot","establishing shot","low angle","high angle","overhead top-down","over-the-shoulder","dutch angle"]],
+["lens","Lens",["24mm wide-angle","35mm","50mm prime","85mm portrait","macro","anamorphic","fisheye","200mm telephoto"]],
+["lighting","Lighting",["golden hour","soft diffused light","dramatic rim lighting","neon glow","low-key moody lighting","volumetric god rays","overcast daylight","studio softbox","candlelight","blue hour"]],
+["mood","Mood",["serene","tense","nostalgic","epic","whimsical","melancholic","eerie","joyful"],1],
+["palette","Color palette",["teal and orange","warm earth tones","monochrome","pastel","high-contrast black and white","neon magenta and cyan","muted desaturated"]],
+["move","Camera movement",["static tripod","slow dolly in","dolly out","tracking shot","handheld","orbit around subject","crane up","whip pan","drone flyover","push-in zoom"],0,1],
+["quality","Quality boosters",["highly detailed","8k","sharp focus","film grain","shallow depth of field","masterpiece"],1]
+];
+// If the rough prompt already matches, that category is skipped when enhancing
+const RX={
+style:/photo|cinematic|anime|paint|render|illustrat|pixel|film|sketch|watercolor|claymation|style|noir/i,
+shot:/close-up|wide shot|angle|medium shot|overhead|top-down|over-the-shoulder|establishing|lens|\d+mm/i,
+lighting:/light|glow|sun|shadow|neon|candle|golden hour|blue hour|rays/i,
+mood:/mood|serene|tense|eerie|epic|nostalgic|whimsical|melanchol|joyful|atmosphere/i,
+palette:/palette|tones|monochrome|pastel|colou?rs?\b|teal|desaturated/i,
+move:/dolly|tracking|pan\b|orbit|zoom|handheld|drone|crane|tilt|static|camera/i,
+quality:/detailed|8k|4k|sharp|grain|masterpiece|depth of field/i
+};
+const S={mode:"image",tab:"build",sel:{},enh:null,text:""};
+const val=id=>$("#"+id).value.trim();
+const pick=k=>{const o=G.find(g=>g[0]==k)[2];return o[Math.random()*o.length|0]};
+const pr=(sel,b)=>$$(sel+" button").forEach(x=>x.setAttribute("aria-pressed",x==b));
+
+$("#ar").innerHTML=["16:9","9:16","1:1","4:3","3:4","21:9","3:2","2:3"].map(x=>`<option>${x}</option>`).join("");
+$("#dur").innerHTML=[4,5,6,8,10,15].map(x=>`<option${x==8?" selected":""}>${x}</option>`).join("");
+$("#chips").innerHTML=G.map(([k,l,o,m,v])=>`<div class="${v?"v":""}"><span class="lab">${l}</span><div class="chips" data-k="${k}">${o.map(x=>`<button type="button" class="chip" aria-pressed="false">${x}</button>`).join("")}</div></div>`).join("");
+
+function sync(){G.forEach(([k])=>S.sel[k]=$$(`[data-k=${k}] .chip[aria-pressed=true]`).map(c=>c.textContent))}
+
+function compose(core,d,neg){
+  const ar=$("#ar").value,v=S.mode=="video",dur=$("#dur").value,t=$("#target").value;
+  const j=a=>a.filter(Boolean).join(", "),clean=core.replace(/[.\s]+$/,""),fr=j([d.shot,d.lens]);
+  if(t=="prose"){
+    const L=[clean+"."];
+    [["Style",d.style],["Framing",fr],["Lighting",d.lighting],["Mood",j(d.mood||[])],["Color palette",d.palette],["Camera movement",v&&d.move],["Quality",j(d.quality||[])]].forEach(([n,x])=>x&&L.push(`${n}: ${x}.`));
+    if(v)L.push(`Duration: ${dur} seconds.`);
+    L.push(`Aspect ratio ${ar}.`);
+    if(neg)L.push(`Avoid: ${neg}.`);
+    return L.join(" ");
+  }
+  const tags=j([clean,d.style,fr,d.lighting,j(d.mood||[]),d.palette,v&&d.move,j(d.quality||[])]);
+  if(t=="mj")return tags+` --ar ${ar}`+(neg?` --no ${neg}`:"");
+  return tags+`\n\nNegative prompt: ${neg||"blurry, low quality, watermark, text, extra limbs"}\nAspect ratio: ${ar}`;
+}
+
+function build(){
+  const s=S.sel,core=[val("subject"),S.mode=="video"?val("action"):"",val("setting")].filter(Boolean).join(", ");
+  if(!core)return "";
+  return compose(core,{style:s.style[0],shot:s.shot[0],lens:s.lens[0],lighting:s.lighting[0],mood:s.mood,palette:s.palette[0],move:s.move[0],quality:s.quality},val("neg"));
+}
+
+function enhance(){
+  const core=$("#base").value.trim();
+  if(!core){S.enh=null;return}
+  const on=$$("#opts input:checked").map(i=>i.value),s=S.sel,d={};
+  const want=k=>on.includes(k)&&!RX[k].test(core)&&(k!="move"||S.mode=="video");
+  const one=k=>s[k][0]||pick(k);
+  if(want("style"))d.style=one("style");
+  if(want("shot")){d.shot=one("shot");d.lens=one("lens")}
+  if(want("lighting"))d.lighting=one("lighting");
+  if(want("mood"))d.mood=s.mood.length?s.mood:[pick("mood")];
+  if(want("palette"))d.palette=one("palette");
+  if(want("move"))d.move=one("move");
+  if(want("quality"))d.quality=s.quality.length?s.quality:[...new Set(["highly detailed",pick("quality")])];
+  S.enh={core,d};
+}
+
+function update(){
+  const b=S.tab=="build";
+  const t=b?build():(S.enh?compose(S.enh.core,S.enh.d,val("neg")):"");
+  S.text=t;
+  const o=$("#out");
+  o.textContent=t;
+  o.dataset.ph=b?"Describe a subject and your prompt appears here.":"Paste a rough prompt, choose what to add, then press Enhance prompt.";
+  $("#stats").textContent=t?`${t.split(/\s+/).length} words, ${t.length} characters`:"";
+}
+
+$("#chips").addEventListener("click",e=>{
+  const b=e.target.closest(".chip");if(!b)return;
+  const box=b.parentNode,multi=G.find(g=>g[0]==box.dataset.k)[3],on=b.getAttribute("aria-pressed")!="true";
+  if(!multi&&on)[...box.children].forEach(c=>c.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed",on);
+  sync();update();
+});
+$("#mode").onclick=e=>{
+  const b=e.target.closest("button");if(!b)return;
+  S.mode=b.dataset.mode;document.body.dataset.mode=S.mode;pr("#mode",b);update();
+};
+$("#tabs").onclick=e=>{
+  const b=e.target.closest("button");if(!b)return;
+  S.tab=b.dataset.tab;document.body.dataset.tab=S.tab;pr("#tabs",b);
+  $("#p-build").hidden=S.tab!="build";$("#p-enh").hidden=S.tab=="build";update();
+};
+["subject","action","setting","neg"].forEach(id=>$("#"+id).addEventListener("input",update));
+["target","ar","dur"].forEach(id=>$("#"+id).addEventListener("change",update));
+$("#enh").onclick=()=>{enhance();update()};
+$("#rand").onclick=()=>{
+  G.forEach(([k,,o,m,v])=>{
+    if(v&&S.mode!="video")return;
+    const ch=$$(`[data-k=${k}] .chip`);
+    ch.forEach(c=>c.setAttribute("aria-pressed","false"));
+    [...ch].sort(()=>Math.random()-.5).slice(0,m?1+(Math.random()*2|0):1).forEach(c=>c.setAttribute("aria-pressed","true"));
+  });
+  sync();update();
+};
+$("#clear").onclick=()=>{
+  $$("input[type=text],input:not([type]),textarea").forEach(i=>i.value="");
+  $$(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+  S.enh=null;sync();update();
+};
+$("#copy").onclick=async e=>{
+  const b=e.currentTarget;if(!S.text)return;
+  try{await navigator.clipboard.writeText(S.text)}
+  catch{const t=document.createElement("textarea");t.value=S.text;document.body.append(t);t.select();document.execCommand("copy");t.remove()}
+  b.textContent="Copied";setTimeout(()=>b.textContent="Copy prompt",1200);
+};
+sync();update();
+</script>
+</body>
+</html>
+
